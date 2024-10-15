@@ -1,0 +1,406 @@
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import javax.swing.*;
+
+public class ShoppingCartApp {
+    private JFrame frame;
+    private JPanel panel;
+    private JTextField itemNameField;
+    private JTextField itemPriceField;
+    private JTextField itemQuantityField;
+    private JTextArea cartArea;
+    private JButton addButton;
+    private JButton removeButton;
+    private JButton buyButton;
+    private JButton exitButton;
+    private JButton adminLoginButton;
+    private JButton userLoginButton;
+    private ShoppingCart cart;
+    private ArrayList<Order> orders; 
+    private JPanel loginPanel;
+
+    public ShoppingCartApp() {
+        cart = new ShoppingCart();
+        orders = new ArrayList<>(); 
+
+        // Initial login panel
+        frame = new JFrame("Shopping System - Login");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(500, 400); // Increased size for better spacing
+
+        loginPanel = new JPanel();
+        loginPanel.setLayout(new GridLayout(2, 1, 20, 20));
+        loginPanel.setBackground(new Color(240, 240, 245)); 
+
+        // User Login Button
+        userLoginButton = new JButton("User Login");
+        userLoginButton.setFont(new Font("Arial", Font.BOLD, 16));
+        userLoginButton.setBackground(new Color(93, 173, 226)); // Soft blue
+        userLoginButton.setForeground(Color.WHITE);
+        userLoginButton.setFocusPainted(false);
+        userLoginButton.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 2));
+        userLoginButton.addActionListener(new UserLoginButtonListener());
+        loginPanel.add(userLoginButton);
+
+        // Admin Login Button
+        adminLoginButton = new JButton("Admin Login");
+        adminLoginButton.setFont(new Font("Arial", Font.BOLD, 16));
+        adminLoginButton.setBackground(new Color(231, 76, 60)); // Soft red
+        adminLoginButton.setForeground(Color.WHITE);
+        adminLoginButton.setFocusPainted(false);
+        adminLoginButton.setBorder(BorderFactory.createLineBorder(new Color(192, 57, 43), 2));
+        adminLoginButton.addActionListener(new AdminLoginButtonListener());
+        loginPanel.add(adminLoginButton);
+
+        frame.getContentPane().add(loginPanel);
+        frame.setVisible(true);
+    }
+
+    // Switch to the shopping cart panel for the user
+    private void showShoppingCartPanel() {
+        frame.getContentPane().removeAll();
+        frame.setTitle("Online Shopping Cart System");
+        frame.setSize(600, 450); // Increased size for better layout
+
+        panel = new JPanel();
+        panel.setLayout(new BorderLayout(10, 10)); // Increased spacing
+        panel.setBackground(new Color(250, 250, 255)); 
+
+        // Create input fields and buttons
+        JPanel inputPanel = new JPanel();
+        inputPanel.setLayout(new GridLayout(4, 2, 15, 15)); // Increased grid gaps for spacing
+        inputPanel.setBackground(new Color(230, 230, 255)); 
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15)); // Padding around the grid
+
+        // Labels and TextFields
+        JLabel nameLabel = new JLabel("Item Name:");
+        nameLabel.setForeground(Color.DARK_GRAY);
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        inputPanel.add(nameLabel);
+
+        itemNameField = new JTextField(20);
+        inputPanel.add(itemNameField);
+
+        JLabel priceLabel = new JLabel("Item Price:");
+        priceLabel.setForeground(Color.DARK_GRAY);
+        priceLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        inputPanel.add(priceLabel);
+
+        itemPriceField = new JTextField(20);
+        inputPanel.add(itemPriceField);
+
+        JLabel quantityLabel = new JLabel("Quantity:");
+        quantityLabel.setForeground(Color.DARK_GRAY);
+        quantityLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        inputPanel.add(quantityLabel);
+
+        itemQuantityField = new JTextField(20);
+        inputPanel.add(itemQuantityField);
+
+        // Add buttons in a single row
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(1, 4, 15, 15)); // Increased spacing between buttons
+        buttonPanel.setBackground(new Color(230, 230, 255)); 
+
+        addButton = new JButton("Add");
+        addButton.setBackground(new Color(88, 214, 141)); // Light green
+        addButton.setForeground(Color.WHITE);
+        addButton.setFocusPainted(false);
+        addButton.setFont(new Font("Arial", Font.BOLD, 14));
+        addButton.addActionListener(new AddButtonListener());
+        buttonPanel.add(addButton);
+
+        removeButton = new JButton("Remove");
+        removeButton.setBackground(new Color(231, 76, 60)); 
+        removeButton.setForeground(Color.WHITE);
+        removeButton.setFocusPainted(false);
+        removeButton.setFont(new Font("Arial", Font.BOLD, 14));
+        removeButton.addActionListener(new RemoveButtonListener());
+        buttonPanel.add(removeButton);
+
+        buyButton = new JButton("Buy");
+        buyButton.setBackground(new Color(93, 173, 226)); 
+        buyButton.setForeground(Color.WHITE);
+        buyButton.setFocusPainted(false);
+        buyButton.setFont(new Font("Arial", Font.BOLD, 14));
+        buyButton.addActionListener(new BuyButtonListener());
+        buttonPanel.add(buyButton);
+
+        exitButton = new JButton("Exit");
+        exitButton.setBackground(new Color(127, 140, 141)); // Gray
+        exitButton.setForeground(Color.WHITE);
+        exitButton.setFocusPainted(false);
+        exitButton.setFont(new Font("Arial", Font.BOLD, 14));
+        exitButton.addActionListener(new ExitButtonListener());
+        buttonPanel.add(exitButton);
+
+        panel.add(inputPanel, BorderLayout.NORTH);
+        panel.add(buttonPanel, BorderLayout.CENTER);
+
+        // Create cart display area
+        cartArea = new JTextArea(10, 20);
+        cartArea.setEditable(false);
+        cartArea.setFont(new Font("Monospaced", Font.PLAIN, 13)); // Monospaced for alignment
+        cartArea.setBackground(new Color(255, 255, 240));
+        cartArea.setBorder(BorderFactory.createLineBorder(new Color(41, 128, 185), 1));
+        panel.add(new JScrollPane(cartArea), BorderLayout.SOUTH);
+
+        frame.getContentPane().add(panel);
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    // Show the admin panel to display orders
+    private void showAdminPanel() {
+        frame.getContentPane().removeAll();
+        frame.setTitle("Admin Panel - Orders");
+        frame.setSize(600, 400); // Slightly bigger for better spacing
+
+        JPanel adminPanel = new JPanel();
+        adminPanel.setLayout(new BorderLayout());
+
+        JTextArea orderArea = new JTextArea();
+        orderArea.setEditable(false);
+        orderArea.setFont(new Font("Monospaced", Font.PLAIN, 13)); // Monospaced for alignment
+        orderArea.setBackground(new Color(255, 255, 240));
+
+        // Display all previous orders
+        StringBuilder orderDetails = new StringBuilder("Previous Orders:\n");
+        for (int i = 0; i < orders.size(); i++) {
+            Order order = orders.get(i);
+            orderDetails.append("Order " + (i + 1) + ":\n");
+            for (Map.Entry<String, CartItem> entry : order.getPurchasedItems().entrySet()) {
+                orderDetails.append("- " + entry.getKey() + ": INR " + entry.getValue().getPrice() + " x " + entry.getValue().getQuantity() + "\n");
+            }
+            orderDetails.append("Total: INR " + order.getTotalAmount() + "\n");
+            orderDetails.append("---------------------------------\n");
+        }
+
+        orderArea.setText(orderDetails.toString());
+        adminPanel.add(new JScrollPane(orderArea), BorderLayout.CENTER);
+
+        JButton exitButton = new JButton("Exit");
+        exitButton.setBackground(new Color(127, 140, 141)); 
+        exitButton.setForeground(Color.WHITE);
+        exitButton.setFont(new Font("Arial", Font.BOLD, 14));
+        exitButton.addActionListener(e -> System.exit(0)); // Admin exits
+        adminPanel.add(exitButton, BorderLayout.SOUTH);
+
+        frame.getContentPane().add(adminPanel);
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    private class AddButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String itemName = itemNameField.getText();
+            String itemPriceStr = itemPriceField.getText();
+            String itemQuantityStr = itemQuantityField.getText();
+            try {
+                double itemPrice = Double.parseDouble(itemPriceStr);
+                int quantity = Integer.parseInt(itemQuantityStr);
+                cart.addItem(itemName, itemPrice, quantity);
+                itemNameField.setText("");
+                itemPriceField.setText("");
+                itemQuantityField.setText("");
+                updateCartDisplay(); 
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame, "Invalid input format");
+            }
+        }
+    }
+
+    private class RemoveButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            String itemName = itemNameField.getText();
+            String itemQuantityStr = itemQuantityField.getText();
+
+            if (itemName.isEmpty() || itemQuantityStr.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Please enter the item name and quantity to remove.");
+                return;
+            }
+
+            try {
+                int quantity = Integer.parseInt(itemQuantityStr);
+                cart.removeItem(itemName, quantity);
+                itemNameField.setText("");
+                itemQuantityField.setText("");
+                updateCartDisplay(); 
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame, "Invalid quantity format.");
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(frame, "Item not found or invalid quantity.");
+            }
+        }
+    }
+
+    private class BuyButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            JOptionPane.showMessageDialog(frame, cart.displayTotal());
+
+            Order newOrder = new Order(cart.getItems(), cart.getTotalAmount());
+            orders.add(newOrder);
+
+            cart.clear();
+            updateCartDisplay();
+        }
+    }
+
+    private class ExitButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            JOptionPane.showMessageDialog(frame, "Thanks! Visit Again!");
+            frame.dispose();
+        }
+    }
+
+    private class AdminLoginButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            showAdminPanel(); 
+        }
+    }
+
+    private class UserLoginButtonListener implements ActionListener {
+        public void actionPerformed(ActionEvent e) {
+            showShoppingCartPanel(); 
+        }
+    }
+
+    private void updateCartDisplay() {
+        cartArea.setText("");  // Clear previous content
+
+    // Print headers
+        cartArea.append(String.format("%-20s %-10s %-10s\n", "Item Name", "Price", "Quantity"));
+        cartArea.append("----------------------------------------------\n");
+
+    // Print cart items
+        for (Map.Entry<String, CartItem> entry : cart.getItems().entrySet()) {
+            cartArea.append(String.format("%-20s %-10.2f %-10d\n", entry.getKey(), entry.getValue().getPrice(), entry.getValue().getQuantity()));
+        }
+
+    // Add vertical spacing and print total amount
+        cartArea.append("----------------------------------------------\n\n"); // Add a blank line for vertical space
+
+    // Print the total amount, aligning the value under the "Price" column
+        cartArea.append(String.format("%-20s %-10.2f\n", "Total Amount", cart.getTotalAmount()));
+    }
+
+    public static void main(String[] args) {
+        new ShoppingCartApp();
+    }
+}
+
+class ShoppingCart {
+    private Map<String, CartItem> items;
+
+    public ShoppingCart() {
+        items = new HashMap<>();
+    }
+
+    public void addItem(String name, double price, int quantity) {
+        if (items.containsKey(name) && items.get(name).getPrice() != price) {
+            name = name + " (Alt)";
+        }
+
+        if (items.containsKey(name)) {
+            CartItem existingItem = items.get(name);
+            existingItem.addQuantity(quantity);
+        } else {
+            items.put(name, new CartItem(name, price, quantity));
+        }
+    }
+
+    public void removeItem(String name, int quantity) {
+        if (!items.containsKey(name)) {
+            throw new IllegalArgumentException("Item not found in the cart.");
+        }
+
+        CartItem existingItem = items.get(name);
+        existingItem.reduceQuantity(quantity);
+
+        if (existingItem.getQuantity() <= 0) {
+            items.remove(name);
+        }
+    }
+
+    public void clear() {
+        items.clear();
+    }
+
+    public Map<String, CartItem> getItems() {
+        return items;
+    }
+
+    public double getTotalAmount() {
+        return items.values().stream()
+                .mapToDouble(item -> item.getPrice() * item.getQuantity())
+                .sum();
+    }
+
+    public String displayTotal() {
+        StringBuilder invoice = new StringBuilder();
+        invoice.append("Your Bill:\n");
+        invoice.append("------------------------------------\n");
+        invoice.append("Item | Price | Quantity\n");
+        invoice.append("------------------------------------\n");
+        for (Map.Entry<String, CartItem> entry : items.entrySet()) {
+            invoice.append(entry.getKey() + " | INR " + entry.getValue().getPrice() + " | " + entry.getValue().getQuantity() + "\n");
+        }
+        invoice.append("------------------------------------\n");
+        invoice.append("Total Amount: INR " + getTotalAmount() + "\n");
+        invoice.append("------------------------------------\n");
+        return invoice.toString();
+    }
+}
+
+class CartItem {
+    private String name;
+    private double price;
+    private int quantity;
+
+    public CartItem(String name, double price, int quantity) {
+        this.name = name;
+        this.price = price;
+        this.quantity = quantity;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void addQuantity(int quantity) {
+        this.quantity += quantity;
+    }
+
+    public void reduceQuantity(int quantity) {
+        this.quantity -= quantity;
+    }
+}
+
+class Order {
+    private Map<String, CartItem> purchasedItems;
+    private double totalAmount;
+
+    public Order(Map<String, CartItem> purchasedItems, double totalAmount) {
+        this.purchasedItems = new HashMap<>(purchasedItems);
+        this.totalAmount = totalAmount;
+    }
+
+    public Map<String, CartItem> getPurchasedItems() {
+        return purchasedItems;
+    }
+
+    public double getTotalAmount() {
+        return totalAmount;
+    }
+}
